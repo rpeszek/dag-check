@@ -1,0 +1,63 @@
+-- This file has been generated from package.yaml by hpack version 0.15.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           dag-check
+version:        0.1.0.0
+description:    Please see the README on Github at <https://github.com/githubuser/dag-check#readme>
+homepage:       https://github.com/githubuser/dag-check#readme
+bug-reports:    https://github.com/githubuser/dag-check/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2018 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files:
+    ChangeLog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/dag-check
+
+library
+  hs-source-dirs:
+      src
+  build-depends:
+      base >= 4.7 && < 5, fgl
+    , QuickCheck
+    , random
+  exposed-modules:
+      Lib
+  default-language: Haskell2010
+
+executable dag-check-exe
+  main-is: Main.hs
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >= 4.7 && < 5
+    , dag-check
+  default-language: Haskell2010
+
+test-suite dag-check-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >= 4.7 && < 5
+    , dag-check
+    , fgl
+    , QuickCheck
+    , hspec
+    , random
+  other-modules:
+      ArbitraryDag
+    , ArbitraryDagSanitySpec
+  default-language: Haskell2010
