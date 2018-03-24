@@ -1,11 +1,9 @@
 module ArbitraryDagSanitySpec (main, spec) where
 
-
 import Test.Hspec
 import Test.QuickCheck
 import ArbitraryDag
 import Data.List (any)
-
 
 spec :: Spec
 spec = do

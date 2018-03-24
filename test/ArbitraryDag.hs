@@ -1,6 +1,6 @@
 {-
 Arbitrary Simple Directed Acyclic graph that has positive likelihood to generate 
-each possible DAG topology
+every possible DAG topology
 -}
 
 {-# LANGUAGE 
@@ -31,6 +31,9 @@ empty = SampleDirGraph [] []
 
 singleton ::  v -> SampleDirGraph v e
 singleton vx = SampleDirGraph [vx] [] 
+
+disconnected ::  [v] -> SampleDirGraph v e
+disconnected vx = SampleDirGraph vx [] 
 
 {-| Represents randomly generated Simple DAG -}
 data ArbitrarySimpleDag v e = ArbitrarySimpleDag (SampleDirGraph v e) deriving Show
@@ -72,6 +75,7 @@ genEdgesDefault :: forall v e. (Eq e, GenEdge v e) => [v] -> Gen [e]
 genEdgesDefault vertices = 
       let vcount = length vertices
           eCountMax = (vcount - 1) * vcount `quot` 2 --max possible number of edges in simple dag             
+          -- defines a (possibly redunant) edge for topologically sorted vertices [v]
           newEdge :: [v] -> Gen (Maybe e)
           newEdge vertices = case length vertices of
            n
@@ -90,7 +94,7 @@ genSizedSimpleDag :: (GenSimpleEdges v e, GenVertices v, Eq e) => Int -> Gen (Ar
 genSizedSimpleDag vcount = do
   case vcount of
      0 -> return $ ArbitrarySimpleDag empty
-     1 -> fmap (ArbitrarySimpleDag . singleton . head) (genVertices 1) -- type safety 
+     1 -> fmap (ArbitrarySimpleDag . disconnected) (genVertices 1)  
      n -> 
         do 
           vertices <- genVertices vcount
