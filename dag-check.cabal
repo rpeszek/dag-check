@@ -3,13 +3,13 @@
 -- see: https://github.com/sol/hpack
 
 name:           dag-check
-version:        0.1.0.0
+version:        0.0.1.0
 description:    Please see the README on Github at <https://github.com/githubuser/dag-check#readme>
-homepage:       https://github.com/githubuser/dag-check#readme
-bug-reports:    https://github.com/githubuser/dag-check/issues
-author:         Author name here
+homepage:       https://github.com/rpeszek/dag-check#readme
+bug-reports:    https://github.com/rpeszek/dag-check/issues
+author:         Robert Peszek
 maintainer:     example@example.com
-copyright:      2018 Author name here
+copyright:      2018 Robert Peszek
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
