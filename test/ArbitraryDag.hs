@@ -14,15 +14,17 @@ module ArbitraryDag where
 import Test.QuickCheck
 import Data.List
 import System.Random (Random)
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, mapM)
 import Data.Maybe (catMaybes)
 import Data.Bool (bool)
 
 {- Helper data types used for Arbitrary generation -}
+type GenSingleEdge v e = v -> v -> Gen e
+type TopSortedVs v = [v]
 
 {-| Represents general directed graph -}
 data SampleDirGraph v e = SampleDirGraph {
-   sortedVerts :: [v]
+   sortedVerts :: TopSortedVs v
   , edges :: [e]
 } deriving Show
 
@@ -57,22 +59,40 @@ instance GenVertices Int where
 
 {-| Second interface needed for DAG generation -}
 class GenSimpleEdges v e where
-   genEdges :: [v] -> Gen [e]
+   genEdges :: TopSortedVs v -> Gen [e]
 
 instance GenSimpleEdges Int (Int, Int) where
-  genEdges = genEdgesDefault
+  genEdges = (genEdgesM1 genEdgeForPair)
 
 
-{-| Helper interface that simplifies implemeting GenSimpleEdges -}
-class GenEdge v e where
-  genEdge :: v -> v -> Gen e
-
-instance GenEdge a (a,a) where
-  genEdge x y = return (x,y)
+genEdgeForPair :: GenSingleEdge v (v,v)
+genEdgeForPair v1 v2 = return (v1, v2)
 
 {-| For default impementation of GenSimpleEdges -}
-genEdgesDefault :: forall v e. (Eq e, GenEdge v e) => [v] -> Gen [e]
-genEdgesDefault vertices = 
+
+{- method 1 generates DAG by removing some edges from complete DAG -}
+genEdgesM1 :: (GenVertices v, Eq e) => GenSingleEdge v e -> TopSortedVs v -> Gen [e]
+genEdgesM1 genEdge vertices = do 
+   completeEdges <- completeSimpleDag genEdge vertices
+   sublistOf completeEdges
+
+{- all possible forward edges are created -}
+completeSimpleDag :: GenSingleEdge v e -> TopSortedVs v -> Gen [e]
+completeSimpleDag genEdge vertices = 
+             let edgeIndecies =
+                        [(i1, i2) | 
+                                 i1 <- [0..(length vertices - 2)], 
+                                 i2 <- [i1..(length vertices - 1)] 
+                        ]
+                  
+                 addEdge (i1, i2) = 
+                     genEdge (vertices !! i1) (vertices !! i2)
+             in mapM addEdge edgeIndecies
+                
+
+{- method 2 generates DAG by adding some edges to empty DAG -}
+genEdgesM2 :: forall v e. Eq e => GenSingleEdge v e -> TopSortedVs v -> Gen [e]
+genEdgesM2 genEdge vertices = 
       let vcount = length vertices
           eCountMax = (vcount - 1) * vcount `quot` 2 --max possible number of edges in simple dag             
           -- defines a (possibly redunant) edge for topologically sorted vertices [v]
@@ -89,6 +109,8 @@ genEdgesDefault vertices =
 
 
 {- Helper / alternative methods for DAG generation -}
+genSimpleDag :: (GenSimpleEdges v e, GenVertices v, Eq e) => Gen (ArbitrarySimpleDag v e)
+genSimpleDag = arbitrarySizedNatural >>= genSizedSimpleDag
 
 genSizedSimpleDag :: (GenSimpleEdges v e, GenVertices v, Eq e) => Int -> Gen (ArbitrarySimpleDag v e)
 genSizedSimpleDag vcount = do
@@ -101,8 +123,6 @@ genSizedSimpleDag vcount = do
           edges <- genEdges vertices
           return $ ArbitrarySimpleDag $ SampleDirGraph vertices edges
 
-genSimpleDag :: (GenSimpleEdges v e, GenVertices v, Eq e) => Gen (ArbitrarySimpleDag v e)
-genSimpleDag = arbitrarySizedNatural >>= genSizedSimpleDag
     
 {-| Seqential type used for DAGs that are nicely sorted -}
 newtype Seqential = Seqential Int deriving (Num, Eq, Ord)
@@ -117,7 +137,7 @@ instance GenVertices Seqential where
   genVertices size = return $ map Seqential [0..size]
 
 instance GenSimpleEdges Seqential (Seqential, Seqential) where
-  genEdges = fmap sort . genEdgesDefault
+  genEdges = fmap sort . (genEdgesM2 genEdgeForPair)
 
 
 {- test methods -}
