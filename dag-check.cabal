@@ -30,8 +30,12 @@ library
       base >= 4.7 && < 5, fgl
     , QuickCheck
     , random
+    , hashable
+    , unordered-containers
+    , protolude
   exposed-modules:
-      Lib
+      Dag 
+     , Dag.Leaves
   default-language: Haskell2010
 
 executable dag-check-exe
@@ -57,7 +61,11 @@ test-suite dag-check-test
     , QuickCheck
     , hspec
     , random
+    , hashable
+    , unordered-containers
+    , protolude
   other-modules:
       ArbitraryDag
     , ArbitraryDagSanitySpec
+    , LeavesSpec
   default-language: Haskell2010

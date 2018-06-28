@@ -1,6 +1,9 @@
 {-
 Arbitrary Simple Directed Acyclic graph that has positive likelihood to generate 
 every possible DAG topology
+
+TODO I have recently added new Dag module 
+     this needs better consolidation with Dag module to achieve clarity
 -}
 
 {-# LANGUAGE 
@@ -14,9 +17,11 @@ module ArbitraryDag where
 import Test.QuickCheck
 import Data.List
 import System.Random (Random)
+import Data.Hashable
 import Control.Monad (replicateM, mapM)
 import Data.Maybe (catMaybes)
 import Data.Bool (bool)
+import Dag
 
 {- Helper data types used for Arbitrary generation -}
 type GenSingleEdge v e = v -> v -> Gen e
@@ -39,6 +44,17 @@ disconnected vx = SampleDirGraph vx []
 
 {-| Represents randomly generated Simple DAG -}
 data ArbitrarySimpleDag v e = ArbitrarySimpleDag (SampleDirGraph v e) deriving Show
+
+instance (DiEdge v e, Eq v) => Dag (ArbitrarySimpleDag v e) v e where
+   -- | topoSort :: g -> [v]
+   topoSort (ArbitrarySimpleDag (SampleDirGraph verts _)) = verts
+   -- | resolveDEdge ::  g -> e -> Maybe (v,v)
+   -- strictly not correct becasue it does not check if edge belongs to graph
+   resolveDEdge _ = Just . resolveDiEdge 
+   -- | dEdgeFrom :: g -> v -> Maybe [e]
+   dEdgeFrom g@(ArbitrarySimpleDag (SampleDirGraph _ dedges)) = dEdgeFromDefault dedges g  
+   -- | dEdges :: g -> [e]
+   dEdges(ArbitrarySimpleDag (SampleDirGraph _ dedges)) = dedges
 
 {- Convience types (Seqential is defined below)-}
 type SimpleSequentialDag = ArbitrarySimpleDag Seqential (Seqential, Seqential)    
@@ -133,6 +149,9 @@ instance Show Seqential where
 instance Arbitrary Seqential where
    arbitrary = Seqential . abs <$> (arbitrary :: Gen Int)
 
+instance Hashable Seqential where
+  hashWithSalt salt (Seqential i) = hashWithSalt salt i 
+
 instance GenVertices Seqential where
   genVertices size = return $ map Seqential [0..size]
 
@@ -147,10 +166,9 @@ test = generate arbitrary
 testP :: IO (SimpleSequentialDag)
 testP = generate arbitrary
 
-
 {- Other: mapping between vertices and edges -}
 class DiEdge v e where
-  resolveEdge :: e -> (v,v)
+  resolveDiEdge :: e -> (v,v)
 
 instance DiEdge a (a,a) where
-  resolveEdge = id
+  resolveDiEdge = id
