@@ -11,7 +11,9 @@
 {-# OPTIONS_GHC -fwarn-unused-imports #-}
 
 -----------------------------------------------------
---- Effects used by imparative graph calcuations
+-- |
+-- Module      : Dag.Eff
+-- Description : Effects used by imparative graph calcuations
 -----------------------------------------------------
 module Dag.Eff where
   
@@ -65,20 +67,25 @@ runMutatingStackIO stackMVar = runM . runMutatingStack stackMVar
 
 
 --------------------------------------------------------------
--- MutatingStoreEffect in-place mutating store usefull for
+-- MutatingStoreEffect in-place mutating stHashSet usefull for
 -- marking visited nodes 
 --------------------------------------------------------------
 
 data Store a = Store {
-  store :: HS.HashSet a
+  stHashSet :: HS.HashSet a,
+  stList :: [a]
 }
 
+stAdd_ :: (Hashable a, Eq a) => a -> Store a -> Store a
+stAdd_ a st = st{ stHashSet = HS.insert a $ stHashSet st, stList = a : stList st }
+ 
 newStore :: IO (MVar (Store a))
-newStore = newMVar (Store HS.empty)
+newStore = newMVar (Store HS.empty [])
 
 data MutatingStoreEffect a e where
     AddToStore :: a -> MutatingStoreEffect a ()
     InStore :: a -> MutatingStoreEffect a Bool
+    StoreContent :: MutatingStoreEffect a [a]
 
 addToStore :: (Member (MutatingStoreEffect a) m) => a -> Eff m ()
 addToStore = send . AddToStore
@@ -86,13 +93,17 @@ addToStore = send . AddToStore
 inStore :: (Member (MutatingStoreEffect a) m) => a -> Eff m Bool
 inStore = send . InStore
 
+storeContent :: (Member (MutatingStoreEffect a) m) => Eff m [a]
+storeContent = send StoreContent
+ 
 runMutatingStore :: forall m a x . (Member IO m, Eq a, Hashable a) => 
                     MVar (Store a) -> Eff (MutatingStoreEffect a : m) x -> Eff m x
 runMutatingStore storeMvar = interpret eval where
   eval :: (Member IO n) => MutatingStoreEffect a e -> Eff n e
   eval (AddToStore a) = send $ modifyMVar storeMvar $
-    \ st -> pure (st{ store = HS.insert a $ store st }, () )
-  eval (InStore a) = send $ (HS.member a) . store <$> readMVar storeMvar
+    \ st -> pure (a `stAdd_` st, () )
+  eval (InStore a) = send $ (HS.member a) . stHashSet <$> readMVar storeMvar
+  eval StoreContent  = send $ reverse . stList <$> readMVar storeMvar
 
 runMutatingStoreIO :: (Eq v, Hashable v) => 
           MVar (Store v) -> 

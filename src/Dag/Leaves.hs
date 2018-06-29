@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -fwarn-unused-imports #-}
 
 ----------------------------------------------------
+-- |
 -- Simple leaf calculaton based on topological sort
 -- conceputal code for my work
 ----------------------------------------------------
@@ -12,10 +13,10 @@ module Dag.Leaves (
   leaves
 ) where
 
-import Dag 
-import qualified Data.HashMap.Lazy as HM
-import qualified Data.HashSet as HS
-import Data.Hashable
+import             Dag 
+import qualified   Data.HashMap.Lazy as HM
+import qualified   Data.HashSet as HS
+import             Data.Hashable
 
 
 type WorkStore v = HM.HashMap v (HS.HashSet v)

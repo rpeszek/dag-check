@@ -26,11 +26,12 @@ spec = describe "StackEff Tests" $ do
   describe "StoreEff Tests" $ do
     it "test addToStore" $ do
        mVar <- newStore :: IO (MVar (Store Int))
-       runMutatingStoreIO mVar $ do
+       got <- runMutatingStoreIO mVar $ do
                   addToStore (1 :: Int)
                   addToStore (2 :: Int)
-       content <- readMVar mVar
-       store content `shouldBe` HS.fromList [2,1]
+                  storeContent
+       store <- readMVar mVar
+       (got, stHashSet store) `shouldBe` ([1,2] :: [Int], HS.fromList [2,1])
     it "test inStore" $ do
        mVar <- newStore :: IO (MVar (Store Int))
        got <- runMutatingStoreIO mVar $ do
