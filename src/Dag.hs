@@ -1,6 +1,7 @@
 {-# LANGUAGE 
    MultiParamTypeClasses
   , FunctionalDependencies
+  , FlexibleInstances
 #-}
 
 -----------------------------------------------------------
@@ -34,3 +35,10 @@ dEdgeFromDefault arrs graph vert =
        in if found 
           then Just matchedArrows
           else Nothing
+
+{- Other: mapping between vertices and edges -}
+class DiEdge v e where
+  resolveDiEdge :: e -> (v,v)
+
+instance DiEdge a (a,a) where
+  resolveDiEdge = id

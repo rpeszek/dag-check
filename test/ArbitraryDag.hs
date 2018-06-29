@@ -12,49 +12,33 @@ TODO I have recently added new Dag module
   , FlexibleInstances
   , GeneralizedNewtypeDeriving 
 #-}
+{-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
+{-# OPTIONS_GHC -fwarn-unused-imports #-}
 
-module ArbitraryDag where
+module ArbitraryDag (
+   module ArbitraryDag
+  , module Dag.Example 
+  ) where
 import Test.QuickCheck
 import Data.List
-import System.Random (Random)
 import Data.Hashable
 import Control.Monad (replicateM, mapM)
 import Data.Maybe (catMaybes)
 import Data.Bool (bool)
 import Dag
+import Dag.Example
 
 {- Helper data types used for Arbitrary generation -}
 type GenSingleEdge v e = v -> v -> Gen e
-type TopSortedVs v = [v]
-
-{-| Represents general directed graph -}
-data SampleDirGraph v e = SampleDirGraph {
-   sortedVerts :: TopSortedVs v
-  , edges :: [e]
-} deriving Show
-
-empty :: SampleDirGraph v e 
-empty = SampleDirGraph [] []
-
-singleton ::  v -> SampleDirGraph v e
-singleton vx = SampleDirGraph [vx] [] 
-
-disconnected ::  [v] -> SampleDirGraph v e
-disconnected vx = SampleDirGraph vx [] 
 
 {-| Represents randomly generated Simple DAG -}
-data ArbitrarySimpleDag v e = ArbitrarySimpleDag (SampleDirGraph v e) deriving Show
+newtype ArbitrarySimpleDag v e = ArbitrarySimpleDag (SampleDiGraph v e) deriving Show
 
 instance (DiEdge v e, Eq v) => Dag (ArbitrarySimpleDag v e) v e where
-   -- | topoSort :: g -> [v]
-   topoSort (ArbitrarySimpleDag (SampleDirGraph verts _)) = verts
-   -- | resolveDEdge ::  g -> e -> Maybe (v,v)
-   -- strictly not correct becasue it does not check if edge belongs to graph
-   resolveDEdge _ = Just . resolveDiEdge 
-   -- | dEdgeFrom :: g -> v -> Maybe [e]
-   dEdgeFrom g@(ArbitrarySimpleDag (SampleDirGraph _ dedges)) = dEdgeFromDefault dedges g  
-   -- | dEdges :: g -> [e]
-   dEdges(ArbitrarySimpleDag (SampleDirGraph _ dedges)) = dedges
+   topoSort (ArbitrarySimpleDag g) = topoSort g
+   resolveDEdge (ArbitrarySimpleDag g) = resolveDEdge g
+   dEdgeFrom (ArbitrarySimpleDag g) = dEdgeFrom g  
+   dEdges (ArbitrarySimpleDag g) = dEdges g
 
 {- Convience types (Seqential is defined below)-}
 type SimpleSequentialDag = ArbitrarySimpleDag Seqential (Seqential, Seqential)    
@@ -137,7 +121,7 @@ genSizedSimpleDag vcount = do
         do 
           vertices <- genVertices vcount
           edges <- genEdges vertices
-          return $ ArbitrarySimpleDag $ SampleDirGraph vertices edges
+          return $ ArbitrarySimpleDag $ SampleDiGraph vertices edges
 
     
 {-| Seqential type used for DAGs that are nicely sorted -}
@@ -165,10 +149,3 @@ test = generate arbitrary
 -- 
 testP :: IO (SimpleSequentialDag)
 testP = generate arbitrary
-
-{- Other: mapping between vertices and edges -}
-class DiEdge v e where
-  resolveDiEdge :: e -> (v,v)
-
-instance DiEdge a (a,a) where
-  resolveDiEdge = id

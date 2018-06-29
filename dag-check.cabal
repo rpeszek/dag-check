@@ -33,9 +33,13 @@ library
     , hashable
     , unordered-containers
     , protolude
+    , freer-simple
   exposed-modules:
-      Dag 
+      Dag
+     , Dag.Example 
      , Dag.Leaves
+     , Dag.Eff 
+     , Dag.Eff.DFS
   default-language: Haskell2010
 
 executable dag-check-exe
@@ -64,8 +68,10 @@ test-suite dag-check-test
     , hashable
     , unordered-containers
     , protolude
+    , quickcheck-io
   other-modules:
       ArbitraryDag
     , ArbitraryDagSanitySpec
     , LeavesSpec
-  default-language: Haskell2010
+    , EffSpec
+    , LeavesVsDfsSpec

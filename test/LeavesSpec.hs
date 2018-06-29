@@ -1,3 +1,6 @@
+{-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
+{-# OPTIONS_GHC -fwarn-unused-imports #-}
+
 module LeavesSpec (main, spec) where
 
 import Test.Hspec
@@ -9,14 +12,13 @@ import qualified Data.HashSet as HS
 import qualified Dag.Leaves as L
 import Dag (isLeaf)
 import Data.Maybe (fromMaybe)
-import System.IO.Unsafe (unsafePerformIO)
 
 spec :: Spec
 spec = do
   describe "Leaves" $ do
     it "leaves have no successors and exist" $ property $ verify
        where verify :: SimpleSequentialDag -> Bool 
-             verify graph@(ArbitrarySimpleDag (SampleDirGraph sortedVs _)) = 
+             verify graph@(ArbitrarySimpleDag (SampleDiGraph sortedVs _)) = 
                 let mvert = head sortedVs
                 in case mvert of 
                     Nothing -> True
@@ -29,8 +31,3 @@ spec = do
 
 main :: IO ()
 main = hspec spec
-
-debug :: Show a => String -> a -> a
-debug msg a = unsafePerformIO $ do 
-    putStrLn $ msg
-    return a 
