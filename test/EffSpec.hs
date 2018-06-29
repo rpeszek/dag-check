@@ -11,8 +11,8 @@ spec = describe "StackEff Tests" $ do
   it "test stackPush" $ do
     mVar <- newStack :: IO (MVar (Stack Int))
     runMutatingStackIO mVar $ do
-                                    stackPush (1 :: Int)
-                                    stackPush (2 :: Int)
+                                stackPush (1 :: Int)
+                                stackPush (2 :: Int)
     content <- readMVar mVar
     stack content `shouldBe` [2,1]
 
@@ -25,15 +25,15 @@ spec = describe "StackEff Tests" $ do
     (got, stack content) `shouldBe` (Just 1, [])
   describe "StoreEff Tests" $ do
     it "test addToStore" $ do
-       mVar <- newStore :: IO (MVar (Store Int))
+       mVar <- newStore :: IO (MVar (DataStore Int))
        got <- runMutatingStoreIO mVar $ do
                   addToStore (1 :: Int)
                   addToStore (2 :: Int)
-                  storeContent
+                  getSequentialStoreContent
        store <- readMVar mVar
        (got, stHashSet store) `shouldBe` ([1,2] :: [Int], HS.fromList [2,1])
     it "test inStore" $ do
-       mVar <- newStore :: IO (MVar (Store Int))
+       mVar <- newStore :: IO (MVar (DataStore Int))
        got <- runMutatingStoreIO mVar $ do
                   addToStore (1 :: Int)
                   addToStore (2 :: Int)

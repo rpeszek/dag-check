@@ -18,7 +18,9 @@ module Dag.Eff.DFS where
 import           Control.Concurrent.MVar   (MVar)
 import           Control.Monad.Freer       (Eff, Member, runM)
 import           Control.Monad.Freer.Error (Error, runError, throwError)
-import           Dag.Eff
+import           Dag.Eff                   (MutatingStackEffect, MutatingDataStoreEffect)
+import qualified Dag.Eff                   as MDS        -- mutating data store commands
+import qualified Dag.Eff                   as MSTK       -- mutating stack commands
 import           Control.Monad             (forM_)
 import           Control.Monad.Loops       (whileJust_)
 import           Data.Hashable
@@ -30,55 +32,60 @@ import           Data.Maybe                (fromMaybe)
 -- to define graph we only need 'adjacency :: v -> Maybe [v]'. 'adjacency' returning 
 -- Nothing means that the argument 'v' was not in the graph. 
 -- 
--- Note that the type signature shows effects used in the calculation, this method 
--- is effect polymorphic and can run in any monad that has the specified effects. 
+-- This approach nicely discloses fine grain effects used by the implemenation  
+-- and nicely decouples the logic that describes the effects from the interpreters (run methods).
+-- It does not provide type safety over, for example, reusing a stack or a data store between 
+-- programs that are implemented using MutatingStackEffect and MutatingDataStoreEffect DSLs.
+-- This seems not very safe but I am not concerning myself too much about it in this conceptual code.
 dfs :: forall v eff . 
-      (Member (Error String) eff                 -- error effect if adjacency returns Nothing
-      , Member (MutatingStackEffect v) eff       -- in-place mutating stack
-      , Member (MutatingStoreEffect v) eff       -- in-place mutating storage
+      (Member (Error String) eff                  -- error effect if adjacency returns Nothing
+      , Member (MutatingStackEffect v) eff        -- in-place mutating stack
+      , Member (MutatingDataStoreEffect v) eff    -- in-place mutating storage
       , Show v)  => 
-      (v -> Maybe [v]) ->                        -- function defining adjacency (defines graph)
-      v ->                                       -- root vertex 
-      Eff eff [v]                                -- list of traversed vertices
+      (v -> Maybe [v]) ->                         -- function defining adjacency (defines graph)
+      v ->                                        -- root vertex 
+      Eff eff [v]                                 -- list of traversed vertices wrapped in effect monad
 
-dfs adjacency root = stackPush root >> dfsLoop >> storeContent where
+-- | 'getSequentialStoreContent' returns elements in MutatingDataStore
+-- in the order the elements were added to it
+dfs adjacency root = MSTK.stackPush root >> dfsLoop >> MDS.getSequentialStoreContent where
      dfsLoop :: Eff eff ()     
      dfsLoop = do 
-        whileJust_ (stackPop)                     -- loop until stack is empty (returns nothing)
+        whileJust_ (MSTK.stackPop)                -- loop until stack is empty (returns nothing)
             (\vert ->  do
-              visited <- inStore vert
+              visited <- MDS.inStore vert
               if visited 
               then pure ()                        -- already visisted nothing to do
               else do
-                addToStore vert                   -- mark vertex as visited
+                MDS.addToStore vert               -- mark vertex as visited
                 mvs <- pure . adjacency $ vert    -- get adjacent vertices
                 case mvs of 
                   Nothing -> throwError $ "vertex not in graph " ++ show vert
                   Just vs -> do 
-                   forM_ vs stackPush             -- push all adjacent vertices on the stack
+                   forM_ vs MSTK.stackPush        -- push all adjacent vertices on the stack
              )
 
--- | runs all dsf effects (MutatingStackEffect, MutatingStoreEffect, Error) in the IO sin bin 
+-- | runs all dsf effects (MutatingStackEffect, MutatingDataStoreEffect, Error) in the IO sin-bin 
 runDsfEffIO :: (Eq v, Show v, Hashable v) => 
-          MVar (Stack v) -> 
-          MVar (Store v) ->  
-          Eff '[MutatingStackEffect v, MutatingStoreEffect v, Error String, IO] x -> 
+          MVar (MSTK.Stack v) -> 
+          MVar (MDS.DataStore v) ->  
+          Eff '[MutatingStackEffect v, MutatingDataStoreEffect v, Error String, IO] x -> 
           IO ( Either String x )
-runDsfEffIO stackMVar storeMVar = runM . runError . runMutatingStore storeMVar . runMutatingStack stackMVar
+runDsfEffIO stackMVar storeMVar = runM . runError . MSTK.runMutatingStore storeMVar . MDS.runMutatingStack stackMVar
 
 -- | convenience method to just run in IO
-runDfsIO :: forall v . (Eq v, Show v, Hashable v) => (v -> Maybe [v]) -> v -> IO (Either String [v])
-runDfsIO adjacency root = do 
-     stackMVar <- newStack :: IO (MVar (Stack v))
-     storeMVar <- newStore
+dfsIO :: forall v . (Eq v, Show v, Hashable v) => (v -> Maybe [v]) -> v -> IO (Either String [v])
+dfsIO adjacency root = do 
+     stackMVar <- MSTK.newStack :: IO (MVar (MSTK.Stack v))
+     storeMVar <- MDS.newStore
      runDsfEffIO stackMVar storeMVar (dfs adjacency root) 
 
--- | DFS version of leaf calcuation
+-- | DFS version of leaf calcuation to demonstrate property testing
 -- see LeavesVsDfsSpec, alternative approaches to the same graph computation
 -- lead to good property tests
-dagLeavesUsingDfs :: (Dag g v e, Eq v, Hashable v, Show v) => g -> v -> IO (Maybe (HS.HashSet v))
-dagLeavesUsingDfs g v = do 
-         eitherList <- runDfsIO (successors g) v
+dagLeavesUsingDfsIO :: (Dag g v e, Eq v, Hashable v, Show v) => g -> v -> IO (Maybe (HS.HashSet v))
+dagLeavesUsingDfsIO g v = do 
+         eitherList <- dfsIO (successors g) v
          case eitherList of 
              Left _ -> pure Nothing
              Right list -> pure $ Just . HS.fromList $ filter (fromMaybe False . isLeaf g) list
