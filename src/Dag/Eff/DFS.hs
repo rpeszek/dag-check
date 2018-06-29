@@ -1,10 +1,6 @@
 {-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE DeriveAnyClass   #-}
-{-# LANGUAGE DeriveGeneric    #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
-{-# LANGUAGE NamedFieldPuns   #-}
-{-# LANGUAGE TypeOperators    #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
@@ -35,31 +31,31 @@ import           Data.Maybe                (fromMaybe)
 -- Nothing means that the argument 'v' was not in the graph. 
 -- 
 -- Note that the type signature shows effects used in the calculation, this method 
--- is effect polymorphic and can run in any monad that has specified effects. 
+-- is effect polymorphic and can run in any monad that has the specified effects. 
 dfs :: forall v eff . 
-      (Member (Error String) eff           -- error effect if ajacency returns Nothing
-      , Member (MutatingStackEffect v) eff -- in-place mutating stack
-      , Member (MutatingStoreEffect v) eff -- in-place mutating storage
+      (Member (Error String) eff                 -- error effect if adjacency returns Nothing
+      , Member (MutatingStackEffect v) eff       -- in-place mutating stack
+      , Member (MutatingStoreEffect v) eff       -- in-place mutating storage
       , Show v)  => 
-      (v -> Maybe [v]) ->                  -- graph defining function defining adjacency
-      v ->                                 -- root vertex 
-      Eff eff [v]                          -- list of traversed vertices
+      (v -> Maybe [v]) ->                        -- function defining adjacency (defines graph)
+      v ->                                       -- root vertex 
+      Eff eff [v]                                -- list of traversed vertices
 
 dfs adjacency root = stackPush root >> dfsLoop >> storeContent where
      dfsLoop :: Eff eff ()     
      dfsLoop = do 
-        whileJust_ (stackPop)
+        whileJust_ (stackPop)                     -- loop until stack is empty (returns nothing)
             (\vert ->  do
               visited <- inStore vert
               if visited 
-              then pure ()
+              then pure ()                        -- already visisted nothing to do
               else do
-                addToStore vert
-                mvs <- pure . adjacency $ vert
+                addToStore vert                   -- mark vertex as visited
+                mvs <- pure . adjacency $ vert    -- get adjacent vertices
                 case mvs of 
                   Nothing -> throwError $ "vertex not in graph " ++ show vert
                   Just vs -> do 
-                   forM_ vs stackPush
+                   forM_ vs stackPush             -- push all adjacent vertices on the stack
              )
 
 -- | runs all dsf effects (MutatingStackEffect, MutatingStoreEffect, Error) in the IO sin bin 

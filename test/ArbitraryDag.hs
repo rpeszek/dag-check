@@ -19,19 +19,20 @@ module ArbitraryDag (
    module ArbitraryDag
   , module Dag.Example 
   ) where
-import Test.QuickCheck
-import Data.List
-import Data.Hashable
-import Control.Monad (replicateM, mapM)
-import Data.Maybe (catMaybes)
-import Data.Bool (bool)
-import Dag
-import Dag.Example
+
+import          Test.QuickCheck
+import          Data.List
+import          Data.Hashable
+import          Control.Monad         (replicateM, mapM)
+import          Data.Maybe            (catMaybes)
+import          Data.Bool             (bool)
+import          Dag
+import          Dag.Example           (SampleDiGraph(..), TopSortedVs, disconnected, empty)
 
 {- Helper data types used for Arbitrary generation -}
 type GenSingleEdge v e = v -> v -> Gen e
 
-{-| Represents randomly generated Simple DAG -}
+{-| Represents randomly generated Simple DAG, uses SampleDiGraph defined in Dag.Example -}
 newtype ArbitrarySimpleDag v e = ArbitrarySimpleDag (SampleDiGraph v e) deriving Show
 
 instance (DiEdge v e, Eq v) => Dag (ArbitrarySimpleDag v e) v e where
