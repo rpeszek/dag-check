@@ -71,6 +71,7 @@ test-suite dag-check-test
     , unordered-containers
     , protolude
     , quickcheck-io
+    , monad-loops
   other-modules:
       ArbitraryDag
     , ArbitraryDagSanitySpec
