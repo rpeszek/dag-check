@@ -20,7 +20,6 @@ module Dag.Eff.BFS where
   
 import           Control.Monad.Freer       (Eff, Member, runM)
 import           Control.Monad.Freer.Error (Error, runError, throwError)
-import           Dag.Eff                   (MutatingQueueEffect, MutatingDataStoreEffect)
 import qualified Dag.Eff                   as DS        -- mutating data store commands
 import qualified Dag.Eff                   as QU        -- mutating queue commands
 import           Control.Monad             (forM_)
@@ -36,11 +35,11 @@ import           Data.Proxy
 -- 'adjacency' returning Nothing means that the argument 'v' was not in the graph. 
 --
 -- Please see 'Dag.Eff.DFS' documentation because this is almost identical 
--- the only difference is use of MutatingQueueEffect instead of MutatingStackEffect
+-- the only difference is use of QU.MutatingQueueEffect instead of MutatingStackEffect
 bfs :: forall v eff . 
-      (Member (Error String) eff                  
-      , Member (MutatingQueueEffect v) eff        
-      , Member (MutatingDataStoreEffect v) eff    
+      (Member  (Error String) eff                  
+      , Member (QU.MutatingQueueEffect v) eff        
+      , Member (DS.MutatingDataStoreEffect v) eff    
       , Show v)  => 
       (v -> Maybe [v]) ->                         
       v ->                                        
@@ -66,10 +65,10 @@ bfs adjacency root = do
         DS.getSequentialStoreContent dsH              -- return all elements in datastore in order they
                                                       -- were visited
 
--- | runs all bsf effects (MutatingQueueEffect, MutatingDataStoreEffect, Error) in the IO sin-bin 
+-- | runs all bsf effects (QU.MutatingQueueEffect, DS.MutatingDataStoreEffect, Error) in the IO sin-bin 
 runBsfEffIO :: (Eq v, Show v, Hashable v) => 
           Proxy v -> 
-          Eff '[MutatingQueueEffect v, MutatingDataStoreEffect v, Error String, IO] x -> 
+          Eff '[QU.MutatingQueueEffect v, DS.MutatingDataStoreEffect v, Error String, IO] x -> 
           IO ( Either String x )
 runBsfEffIO _ = runM . runError . QU.runMutatingStore . QU.runMutatingQueue
 

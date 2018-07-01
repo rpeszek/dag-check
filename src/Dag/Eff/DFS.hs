@@ -19,7 +19,6 @@ module Dag.Eff.DFS where
   
 import           Control.Monad.Freer       (Eff, Member, runM)
 import           Control.Monad.Freer.Error (Error, runError, throwError)
-import           Dag.Eff                   (MutatingStackEffect, MutatingDataStoreEffect)
 import qualified Dag.Eff                   as DS         -- mutating data store commands
 import qualified Dag.Eff                   as SK         -- mutating stack commands
 import           Control.Monad             (forM_)
@@ -37,16 +36,14 @@ import           Data.Proxy
 -- This approach nicely discloses effects used by the implemenation  
 -- and nicely decouples the logic that describes the effects from the interpreters (run methods).
 dfs :: forall v eff . 
-      (Member (Error String) eff                   -- error effect if adjacency returns Nothing
-      , Member (MutatingStackEffect v) eff         -- in-place mutating stack
-      , Member (MutatingDataStoreEffect v) eff     -- in-place mutating storage
+      (Member  (Error String) eff                  -- error effect if adjacency returns Nothing
+      , Member (ST.MutatingStackEffect v) eff      -- in-place mutating stack effect
+      , Member (DS.MutatingDataStoreEffect v) eff  -- in-place mutating storage effect
       , Show v)  => 
       (v -> Maybe [v]) ->                          -- function defining adjacency (defines graph)
       v ->                                         -- root vertex 
       Eff eff [v]                                  -- list of traversed vertices wrapped in effect monad
 
--- | 'getSequentialStoreContent' returns elements in MutatingDataStore
--- in the order the elements were added to it
 dfs adjacency root = do 
         skH <- SK.createStack                     -- handle to new stack
         dsH <- DS.createStore                     -- handle to new datastore 
@@ -67,11 +64,11 @@ dfs adjacency root = do
         DS.getSequentialStoreContent dsH           -- return all elements in datastore in order they
                                                    -- were visited
 
--- | interprets all dsf effects (MutatingStackEffect, MutatingDataStoreEffect, Error) 
+-- | interprets all dsf effects (ST.MutatingStackEffect, DS.MutatingDataStoreEffect, Error) 
 -- in the IO sin-bin 
 runDsfEffIO :: (Eq v, Show v, Hashable v) => 
           Proxy v -> 
-          Eff '[MutatingStackEffect v, MutatingDataStoreEffect v, Error String, IO] x -> 
+          Eff '[ST.MutatingStackEffect v, DS.MutatingDataStoreEffect v, Error String, IO] x -> 
           IO ( Either String x )
 runDsfEffIO _ = runM . runError . SK.runMutatingStore . DS.runMutatingStack
 
