@@ -37,7 +37,7 @@ import           Data.Proxy
 -- Please see 'Dag.Eff.DFS' documentation because this is almost identical 
 -- the only difference is use of QU.MutatingQueueEffect instead of MutatingStackEffect
 bfs :: forall v eff . 
-      (Member  (Error String) eff                  
+      (Member (Error String) eff                  
       , Member (QU.MutatingQueueEffect v) eff        
       , Member (DS.MutatingDataStoreEffect v) eff    
       , Show v)  => 

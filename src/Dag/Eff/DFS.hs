@@ -37,7 +37,7 @@ import           Data.Proxy
 -- and nicely decouples the logic that describes the effects from the interpreters (run methods).
 dfs :: forall v eff . 
       (Member  (Error String) eff                  -- error effect if adjacency returns Nothing
-      , Member (ST.MutatingStackEffect v) eff      -- in-place mutating stack effect
+      , Member (SK.MutatingStackEffect v) eff      -- in-place mutating stack effect
       , Member (DS.MutatingDataStoreEffect v) eff  -- in-place mutating storage effect
       , Show v)  => 
       (v -> Maybe [v]) ->                          -- function defining adjacency (defines graph)
@@ -64,11 +64,11 @@ dfs adjacency root = do
         DS.getSequentialStoreContent dsH           -- return all elements in datastore in order they
                                                    -- were visited
 
--- | interprets all dsf effects (ST.MutatingStackEffect, DS.MutatingDataStoreEffect, Error) 
+-- | interprets all dsf effects (SK.MutatingStackEffect, DS.MutatingDataStoreEffect, Error) 
 -- in the IO sin-bin 
 runDsfEffIO :: (Eq v, Show v, Hashable v) => 
           Proxy v -> 
-          Eff '[ST.MutatingStackEffect v, DS.MutatingDataStoreEffect v, Error String, IO] x -> 
+          Eff '[SK.MutatingStackEffect v, DS.MutatingDataStoreEffect v, Error String, IO] x -> 
           IO ( Either String x )
 runDsfEffIO _ = runM . runError . SK.runMutatingStore . DS.runMutatingStack
 

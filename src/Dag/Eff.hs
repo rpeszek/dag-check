@@ -1,9 +1,6 @@
 {-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE DeriveAnyClass   #-}
-{-# LANGUAGE DeriveGeneric    #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
-{-# LANGUAGE NamedFieldPuns   #-}
 {-# LANGUAGE TypeOperators    #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 
