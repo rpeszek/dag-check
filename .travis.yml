@@ -17,7 +17,7 @@ before_script:
   - stack setup
 
 script:
-  - stack build
+  - stack --no-terminal --skip-ghc-check test
 
 cache:
   # timeout: 6000
